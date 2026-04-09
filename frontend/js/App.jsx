@@ -4,6 +4,45 @@
  */
 
 // ══════════════════════════════════════════════════
+//  Audio Receiver Hook (Web Audio API)
+// ══════════════════════════════════════════════════
+function useAudioReceiver(socket) {
+  useEffect(() => {
+    if (!socket) return;
+    const AudioContextWin = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextWin) return;
+    
+    const audioCtx = new AudioContextWin({ sampleRate: 16000 });
+    const nextTimes = {};
+
+    const handleAudio = ({ socketId, pcm }) => {
+      // Browsers suspend audio context until user interaction
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      const int16 = new Int16Array(pcm);
+      const float32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 0x7FFF;
+
+      const buffer = audioCtx.createBuffer(1, float32.length, 16000);
+      buffer.getChannelData(0).set(float32);
+
+      let t = nextTimes[socketId] || audioCtx.currentTime;
+      if (t < audioCtx.currentTime) t = audioCtx.currentTime;
+
+      const source = audioCtx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(audioCtx.destination);
+      source.start(t);
+      
+      nextTimes[socketId] = t + buffer.duration;
+    };
+
+    socket.on('audio-pcm', handleAudio);
+    return () => socket.off('audio-pcm', handleAudio);
+  }, [socket]);
+}
+
+// ══════════════════════════════════════════════════
 //  Teacher Dashboard
 // ══════════════════════════════════════════════════
 function TeacherDashboard({ user, roomId, socket, onLeave, joinSettings }) {
@@ -29,6 +68,8 @@ function TeacherDashboard({ user, roomId, socket, onLeave, joinSettings }) {
   window._waitingList = waitingList;
   window._onAdmit = (sid) => socket.emit('admit-student', { socketId: sid });
   window._sessionTranscript = transcript;
+
+  useAudioReceiver(socket);
 
   useEffect(() => {
     socket.emit('teacher-join', { roomId, teacherName: user.username });
@@ -192,6 +233,8 @@ function StudentDashboard({ user, roomId, socket, onLeave, joinSettings, admissi
   const [toast, setToast] = useState('');
   const [announcements, setAnnouncements] = useState([]);
   const [showChat, setShowChat] = useState(true);
+
+  useAudioReceiver(socket);
 
   useEffect(() => {
     socket.on('student-admitted', d => {

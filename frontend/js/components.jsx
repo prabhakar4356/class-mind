@@ -283,6 +283,8 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
   const [status, setStatus] = useState(role === 'teacher' ? 'teacher' : 'focused');
   const [aiOverlay, setAiOverlay] = useState(null);
   const [maximized, setMaximized] = useState(false);
+  const audioEnabledRef = useRef(audio);
+  audioEnabledRef.current = audio;
 
   useEffect(() => {
     let stopped = false;
@@ -321,6 +323,29 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
           }
         }, 100);
 
+        // Audio Streamer Setup
+        let audioCtx, source, processor, silentGain;
+        if (s.getAudioTracks().length > 0) {
+           const AudioContextWin = window.AudioContext || window.webkitAudioContext;
+           audioCtx = new AudioContextWin({ sampleRate: 16000 });
+           source = audioCtx.createMediaStreamSource(s);
+           processor = audioCtx.createScriptProcessor(4096, 1, 1);
+           
+           processor.onaudioprocess = (e) => {
+             if (audioEnabledRef.current && socket && !stopped) {
+                const float32 = e.inputBuffer.getChannelData(0);
+                const int16 = new Int16Array(float32.length);
+                for(let i=0; i<float32.length; i++) int16[i] = float32[i] * 0x7FFF;
+                socket.volatile.emit('audio-pcm', { roomId, pcm: int16.buffer });
+             }
+           };
+           silentGain = audioCtx.createGain();
+           silentGain.gain.value = 0;
+           source.connect(processor);
+           processor.connect(silentGain);
+           silentGain.connect(audioCtx.destination);
+        }
+
         // AI Engagement Detection (for students only)
         if (role !== 'teacher' && video && window.EngagementAI && !sharing) {
           setTimeout(() => {
@@ -339,7 +364,10 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
           }, 2000);
         }
 
-      } catch (e) { setStatus('error'); }
+      } catch (e) {
+        console.error("Camera access failed", e);
+        setStatus('error');
+      }
     }
     init();
     return () => { 
@@ -347,6 +375,7 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
       clearInterval(frameInterval); 
       streamRef.current?.getTracks().forEach(t => t.stop());
       if (window.EngagementAI) window.EngagementAI.stop();
+      // Audio nodes are garbage collected when stopped
     };
   }, [sharing, videoEnabled, audioEnabled]); // Dependencies cleaned up
 
@@ -365,7 +394,15 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
     <>
       {maximized && <div className="maximized-overlay" onClick={() => setMaximized(false)} />}
       <div className={`video-tile ${role === 'teacher' ? 'active-speaker' : ''} ${maximized ? 'maximized' : ''}`}>
-        {video ? (
+        {status === 'error' ? (
+          <div className="video-placeholder" style={{ background: 'var(--danger-glow)', flexDirection: 'column' }}>
+            <i className="ph ph-warning-circle" style={{ fontSize: '3rem', color: 'white', marginBottom: '10px' }}></i>
+            <p style={{ color: 'white', textAlign: 'center', padding: '0 20px', fontSize: '0.9rem' }}>
+              <strong>Camera Permission Denied</strong><br/>
+              Please click 'Allow' in your browser URL bar.
+            </p>
+          </div>
+        ) : video ? (
           <video ref={videoRef} autoPlay muted playsInline className="video-obj" style={{ transform: sharing ? 'none' : 'scaleX(-1)' }} />
         ) : (
           <div className="video-placeholder">

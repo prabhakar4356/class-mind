@@ -251,6 +251,11 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('teacher-muted-you');
   });
 
+  // ── Audio Relay ───────────────────────────────────────────────────
+  socket.on('audio-pcm', (data) => {
+    socket.volatile.broadcast.to(data.roomId).emit('audio-pcm', { socketId: socket.id, pcm: data.pcm });
+  });
+
   // ── Pin / Unpin student ───────────────────────────────────────────
   socket.on('pin-student', ({ socketId }) => {
     const { roomId, role } = socket.data || {};
