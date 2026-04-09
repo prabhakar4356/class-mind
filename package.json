@@ -1,0 +1,15 @@
+{
+  "name": "classmind-ai-root",
+  "version": "1.0.0",
+  "description": "ClassMind AI – Professional Online Classroom Platform",
+  "main": "backend/server.js",
+  "scripts": {
+    "install-all": "cd backend && npm install",
+    "start": "node backend/server.js",
+    "dev": "cd backend && npm run dev",
+    "postinstall": "npm run install-all"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

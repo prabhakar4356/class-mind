@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClassMind AI – Virtual Classroom Platform</title>
+  <meta name="description" content="ClassMind AI – Professional AI-powered virtual classroom platform with real-time engagement analytics, live polls, reactions, and more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- CDN Libraries -->
+  <script src="vendor/react.development.js" crossorigin></script>
+  <script src="vendor/react-dom.development.js" crossorigin></script>
+  <script src="vendor/babel.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
+
+  <!-- MediaPipe Face Mesh for AI engagement detection -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+
+  <!-- App Scripts (order matters: AI → Components → App) -->
+  <script type="text/babel" src="js/engagementAI.js"></script>
+  <script type="text/babel" src="js/components.jsx"></script>
+  <script type="text/babel" src="js/App.jsx"></script>
+</body>
+</html>
