@@ -135,7 +135,15 @@ function PreJoinScreen({ user, roomId, onJoin, onBack }) {
   useEffect(() => {
     async function init() {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const s = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            latency: 0
+          }
+        });
         streamRef.current = s;
         if (videoRef.current) videoRef.current.srcObject = s;
       } catch (e) { console.error('Media init failed', e); }
@@ -299,7 +307,15 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
           s = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
           s.getVideoTracks()[0].onended = () => !stopped && setSharing(false);
         } else {
-          s = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+          s = await navigator.mediaDevices.getUserMedia({ 
+            video: true, 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              latency: 0
+            } 
+          });
         }
         
         if (stopped) { s.getTracks().forEach(t => t.stop()); return; }
@@ -329,7 +345,8 @@ function MyVideoTile({ username, onStatusChange, role, socket, roomId, audioEnab
            const AudioContextWin = window.AudioContext || window.webkitAudioContext;
            audioCtx = new AudioContextWin({ sampleRate: 16000 });
            source = audioCtx.createMediaStreamSource(s);
-           processor = audioCtx.createScriptProcessor(4096, 1, 1);
+           // Reduce script processor buffer size for lower latency (1024 instead of 4096)
+           processor = audioCtx.createScriptProcessor(1024, 1, 1);
            
            processor.onaudioprocess = (e) => {
              if (audioEnabledRef.current && socket && !stopped) {

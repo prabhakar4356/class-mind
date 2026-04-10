@@ -27,6 +27,13 @@ function useAudioReceiver(socket) {
       buffer.getChannelData(0).set(float32);
 
       let t = nextTimes[socketId] || audioCtx.currentTime;
+      
+      // A/V Synchronization & Jitter Buffer: Drop frames if we are buffering too far into the future
+      if (t > audioCtx.currentTime + 0.3) {
+        console.warn(`[Audio] Resetting jitter buffer for ${socketId}. Delay was ${t - audioCtx.currentTime}s`);
+        t = audioCtx.currentTime + 0.05; 
+      }
+      
       if (t < audioCtx.currentTime) t = audioCtx.currentTime;
 
       const source = audioCtx.createBufferSource();

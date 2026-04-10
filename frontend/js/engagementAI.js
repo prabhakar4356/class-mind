@@ -219,8 +219,16 @@ window.EngagementAI = (function () {
     });
     faceMesh.onResults(processResults);
 
+    let lastFrameTime = 0;
     const camera = new Camera(videoEl, {
-      onFrame: async () => { await faceMesh.send({ image: videoEl }); },
+      onFrame: async () => { 
+        const now = Date.now();
+        // Reduce frame rate to ~5 fps to save CPU on main thread
+        if (now - lastFrameTime > 200) {
+          lastFrameTime = now;
+          await faceMesh.send({ image: videoEl }); 
+        }
+      },
       width: 480, height: 360,
     });
     await camera.start();
